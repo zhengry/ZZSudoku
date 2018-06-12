@@ -13,5 +13,5 @@ Swift版数独游戏
 2. 用户填充数字后，检查行、列、小九宫格是否有重复，有重复则报错（红色）
 #### demo中的其他细节：
 1. 针对不同level，做了倒计时挑战
-2. 在一个AlertController调起时，如果一个AlertAction的动作是调起另一个AlertController，会持续报警告并且不能正常调起，demo中模拟系统的AlertController的功能实现了一个自定义的AlertView，不过Swift用的不太好，没有实现点击Alert自动dismiss。
+2. 在一个AlertController调起时，如果一个AlertAction的动作是调起另一个AlertController，会持续报警告并且不能正常调起，demo中模拟系统的AlertController的功能实现了一个自定义的AlertView，点击Alert需要手动调用dismiss。
 3. “重来”功能相当于复盘
