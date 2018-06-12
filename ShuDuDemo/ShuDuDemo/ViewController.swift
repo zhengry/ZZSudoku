@@ -522,12 +522,14 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
                 }else{
                     manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
                 }
+                cell0.isError = isError1
                 
             }else{
                 cell0.title = 0
                 cell0.titleLabel.text = String(format: "%d", cell0.title)
                 cell0.titleLabel.textColor = self.hexColor(hex: NORMAL_TEXT_COLOR)
                 manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
+                cell0.isError = false
             }
             
         }else{
@@ -535,6 +537,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
             cell0.titleLabel.text = "0"
             cell0.titleLabel.textColor = self.hexColor(hex: NORMAL_TEXT_COLOR)
             manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
+            cell0.isError = false
         }
         
         cell0.titleLabel.isHidden = (cell0.title == 0)
@@ -627,6 +630,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         if cell.title != 0 {
             cell.contentView.backgroundColor = self.hexColor(hex: 0xEEEEEE)
         }
+        cell.isError = false
         
         if !allCells.contains(cell) {
             allCells.append(cell)
