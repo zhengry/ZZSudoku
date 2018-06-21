@@ -57,8 +57,11 @@ class PlatePresentationManager: NSObject {
     public var levelType: LevelType = LevelType(level: .level1, empty: .level1Empty, time: .time1)
     
     public var shuduArr = Array<Array<Int>>(repeating: Array<Int>(repeating: 0, count: 9), count: 9)
-    
+    var nums: [Int] = []
     func generate(forLevel level: LevelType) -> [[Int]] {
+        for i in 0...80 {
+            nums.append(i)
+        }
         var n = Int(arc4random()) % SIZE + 1
         for i in 0 ..< SIZE {
             for j in 0 ..< SIZE {
@@ -75,33 +78,68 @@ class PlatePresentationManager: NSObject {
             n = n % SIZE + 1
         }
         upset()
-        print(shuduArr)
+        
         
         maskCells(forLevel: level)
+        print(shuduArr)
         return shuduArr
 
     }
     
     func maskCells(forLevel level: LevelType) -> Void {
-        
+
         //设置level有5个等级（1——5），等级越高，挖坑越多，每高一级，多挖5个坑.最低级有40个坑
 
 //        let count = BASIC_MASK + (level - 1) * 5
         let count = level.empty.rawValue
-        
+ 
         for _ in 0 ..< count {
-            let m = Int(arc4random()) % SIZE
-            let n = Int(arc4random()) % SIZE
-            if shuduArr[n][m] > 0 {
-                shuduArr[n][m] = 0
+            
+            let index = self.createRandomMan(start: 0, end: 80)
+            let m = index / 9
+            let n = index % 9
+//            print(index)
+            print("index = \(index), (m,n) = (\(m),\(n))")
+            if shuduArr[m][n] != 0 {
+                shuduArr[m][n] = 0
             }
+
         }
         
     }
     
+    //随机数生成器函数
+    func createRandomMan(start: Int, end: Int) ->Int {
+//        //根据参数初始化可选值数组
+//        var nums: [Int] = []
+//        for i in start...end {
+//            nums.append(i)
+//        }
+        
+        func randomMan() -> Int! {
+            if nums.count > 0 {
+                //随机返回一个数，同时从数组里删除
+                let index = Int(arc4random()) % (nums.count)
+                let num = nums[index]
+                nums.remove(at: index)
+                return num
+            }
+            else {
+                //所有值都随机完则返回nil
+                return 0
+            }
+        }
+        
+        return randomMan()
+        
+        
+
+    }
+
+    
     //随机打乱顺序
     func upset() -> Void {
-        //按行交换三次，先找到一个要交换的九宫格(一共有9个,0~8)，然后选取九宫格的任意两行进行交换
+        //按行交换三次
         for _ in 0 ..< 3 {//交换三次
             let i = Int(arc4random()) % SIZE//获取要交换的九宫格的index
             
@@ -118,7 +156,7 @@ class PlatePresentationManager: NSObject {
             }
         }
         
-        //按行交换三次，先找到一个要交换的九宫格(一共有9个,0~8)，然后选取九宫格的任意两行进行交换
+        //按列交换三次
         for _ in 0 ..< 3 {//交换三次
             let i = Int(arc4random()) % SIZE//获取要交换的九宫格的index
             let zoneY = i / 3
@@ -137,6 +175,9 @@ class PlatePresentationManager: NSObject {
     
     //检查某行
     func checkRow(n: Int, row: Int) -> Bool {
+        if n <= 0 {
+            return false
+        }
         var result = true
         for i in 0 ..< SIZE {
             if shuduArr[row][i] == n {
@@ -150,6 +191,9 @@ class PlatePresentationManager: NSObject {
     
     //检查某列
     func checkColumn(n: Int, column: Int) -> Bool {
+        if n <= 0 {
+            return false
+        }
         var result = true
         for i in 0 ..< SIZE {
             if shuduArr[i][column] == n {
@@ -163,6 +207,9 @@ class PlatePresentationManager: NSObject {
     
     //检查九宫格,n表示填入的数字，x，y表示九宫格坐标
     func checkZoneCells(n: Int, x: Int, y: Int) -> Bool {
+        if n <= 0 {
+            return false
+        }
         var result = true
 
         let zoneX = x / 3

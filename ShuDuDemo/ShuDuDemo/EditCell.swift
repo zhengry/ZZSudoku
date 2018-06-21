@@ -20,7 +20,7 @@ class EditCell: UICollectionViewCell {
     public var zoneIndex = 0
     public var title: Int = 0
     public var editable = true
-    public var isError = false
+    public var isTrue = false
     
     override func awakeFromNib() {
         super.awakeFromNib()

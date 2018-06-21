@@ -130,9 +130,8 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     var selectCell : EditCell?
     var manager = PlatePresentationManager()
     var generalArray = Array<Array<Int>>(repeating: Array<Int>(repeating: 0, count: 9), count: 9)//初始化数组
-    var amendedArray = Array<Array<Int>>(repeating: Array<Int>(repeating: 0, count: 9), count: 9)//填充过的数组
-    var zeroCount = 0//记录剩余空格个数，用于判断game success
-    var errorCount = 0 //记录填错的个数，用于game success判断
+//    var amendedArray = Array<Array<Int>>(repeating: Array<Int>(repeating: 0, count: 9), count: 9)//填充过的数组
+    var errorCount = 0//记录数字为0或填错的个数，用于判断game success
     var currentLevel = LevelType(level: .level1, empty: .level1Empty, time: .time1)
     var operations = [(Int, Int, Bool)]()//记录用户操作顺序（当前cell的index, 填入的数, 是否error）
     var timer: Timer?
@@ -144,7 +143,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         view.backgroundColor = UIColor.white
         self.configureUI()
         self.loadShudu(withLevel: currentLevel)
-        zeroCount = currentLevel.empty.rawValue
+        errorCount = currentLevel.empty.rawValue
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -159,9 +158,8 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         currentLevel = level
         timerCount = level.time.rawValue
         generalArray = manager.generate(forLevel: level)
-        amendedArray = generalArray
-        zeroCount = level.empty.rawValue
-        errorCount = 0
+//        amendedArray = generalArray
+        errorCount = level.empty.rawValue
         operations.removeAll()
         collection.reloadData()
         self.startTimer()
@@ -305,30 +303,18 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
             return
         }
         
+        let original = selectCell?.isTrue
         
         let figure = button.tag - 1000
-        //selectCell内容变化前修改zeroCount
-        
-        let originalError = selectCell?.isError
-        
-        if selectCell?.title == 0 {
-            // Configure
-            zeroCount -= 1
-        } else if selectCell?.title == figure{
-            // Delete
-            zeroCount += 1
-            
-        }
-        
         // Change OR Config OR Delete
         selectCell?.title = (selectCell?.title != figure) ? figure : 0
         selectCell?.titleLabel.text = String(format: "%d", (selectCell?.title)!)
         selectCell?.titleLabel.textColor = self.hexColor(hex: NORMAL_TEXT_COLOR)
         
         var result = false//数字是否合法
-        let rowAvailable = manager.checkRow(n: figure, row: (selectCell?.row)!)
-        let colAvailable = manager.checkColumn(n: figure, column: (selectCell?.column)!)
-        let zoneAvailable = manager.checkZoneCells(n: figure, x: (selectCell?.row)!, y: (selectCell?.column)!)
+        let rowAvailable = manager.checkRow(n: (selectCell?.title)!, row: (selectCell?.row)!)
+        let colAvailable = manager.checkColumn(n: (selectCell?.title)!, column: (selectCell?.column)!)
+        let zoneAvailable = manager.checkZoneCells(n: (selectCell?.title)!, x: (selectCell?.row)!, y: (selectCell?.column)!)
         result = rowAvailable && colAvailable && zoneAvailable
         
         // record operation
@@ -336,50 +322,34 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         operations.append(operation)
         print("selectOperations:\(operations)")
         // modify array
-        amendedArray[(selectCell?.row)!][(selectCell?.column)!] = (selectCell?.title)!
+//        amendedArray[(selectCell?.row)!][(selectCell?.column)!] = (selectCell?.title)!
+        
         if result {
             manager.shuduArr[(selectCell?.row)!][(selectCell?.column)!] = (selectCell?.title)!
         }else{
             manager.shuduArr[(selectCell?.row)!][(selectCell?.column)!] = 0
         }
-        if selectCell?.title == 0 {
-            selectCell?.titleLabel.isHidden = true
-            if originalError! {
+        
+        selectCell?.isTrue = result
+        self.change(cell: selectCell, result: result)
+
+        if result != (original!) {
+            if result {
                 errorCount -= 1
-            }
-        }else{
-            selectCell?.titleLabel.isHidden = false
-            
-            if !result {
-                selectCell?.titleLabel.textColor = self.hexColor(hex: ERROR_TEXT_COLOR)//出错
-            }
-            
-            if result != originalError! {
-                if result {
-                    errorCount -= 1
-                }else{
-                    errorCount += 1
-                }
             }else{
-                if !result {
-                    errorCount += 1
-                }
+                errorCount += 1
             }
         }
+        print("errorCount---\(errorCount)")
         
-        selectCell?.isError = result
-        
-        
-        if result && zeroCount == 0 && errorCount == 0 {
+        if result && errorCount == 0 {
             self.gameSuccess()
         }
-
-        
     }
     
     @objc func newGame() {
         
-        if zeroCount != 0 || errorCount != 0 {
+        if errorCount != 0 {
             let alert = ZZAlertView(frame: CGRect(x: 0, y: 0, width: 100, height: 40))
             alert.add(Title: "离开当前游戏？")
             let confirm = ZZAlertAction(title: "确定") {
@@ -436,8 +406,21 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     
     //挑战成功
     func gameSuccess() -> Void {
-        let alert = UIAlertController(title: "恭喜您挑战成功！", message: nil, preferredStyle: .alert)
-        let action = UIAlertAction(title: "继续挑战", style: .default) { (_) in
+        self.stopTimer()
+        let count = currentLevel.time.rawValue - timerCount
+        var msg = ""
+        
+        if count < 60 {
+            msg = "用时\(count)秒"
+        }else{
+            msg = "用时\(count / 60)分\(count % 60)秒"
+        }
+        let defaults = UserDefaults()
+        defaults.set(count, forKey: "time")
+        defaults.synchronize()
+        
+        let alert = UIAlertController(title: "恭喜您挑战成功！", message: msg, preferredStyle: .alert)
+        let action = UIAlertAction(title: "挑战新游戏", style: .default) { (_) in
             self.newGame()
         }
         alert.addAction(action)
@@ -461,34 +444,13 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         alert.add(Action: action1)
         alert.show(inView: view)
         
-        
-        
-//        let alert = UIAlertController(title: "挑战失败", message: nil, preferredStyle: .alert)
-//        let action0 = UIAlertAction(title: "继续挑战", style: .default) { (_) in
-//            self.stopTimer()
-//        }
-//        let action1 = UIAlertAction(title: "新游戏", style: .default) { (_) in
-//            self.perform(#selector(self.selectGrand), with: nil, afterDelay: 1)
-////            self.selectGrand()
-//        }
-//        alert.addAction(action0)
-//        alert.addAction(action1)
-//        present(alert, animated: true, completion: nil)
     }
     
     /// 重来
     @objc func gameAgain() {
-//        if amendedArray == generalArray {
-//            selectCell = nil
-//            operations.removeAll()
-//            errorCount = 0
-//            zeroCount = currentLevel.empty.rawValue
-//            collection.reloadData()
-//            return
-//        }
-        amendedArray = generalArray
-        zeroCount = currentLevel.empty.rawValue
-        errorCount = 0
+
+//        amendedArray = generalArray
+        errorCount = currentLevel.empty.rawValue
         operations.removeAll()
         selectCell = nil
         collection.reloadData()
@@ -502,50 +464,51 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         let operation = operations.last
         print("revokeOperations:\(operations)")
         let cell0: EditCell = allCells[(operation?.0)!]
-        let isError: Bool = (operation?.2)!
-        if isError {
-            errorCount -= 1
-        }
-        
+        let isTrue: Bool = (operation?.2)!
+
         if operations.count >= 2 {
             let cellIndex = operations[operations.count - 2].0
             let cell1 = allCells[cellIndex]
             if cell0.isEqual(cell1) {
                 cell0.title = operations[operations.count - 2].1
-                cell0.titleLabel.text = String(format: "%d", cell1.title)
-                let isError1 = operations[operations.count - 2].2
                 
-                cell0.titleLabel.textColor = self.hexColor(hex: (isError1 ? NORMAL_TEXT_COLOR : ERROR_TEXT_COLOR))
-                if isError1 {
-                    errorCount += 1
-                    manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = 0
-                }else{
-                    manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
+                let isTrue1 = operations[operations.count - 2].2
+                cell0.isTrue = isTrue1
+                if isTrue != isTrue1 {
+                    if isTrue1 {
+                        errorCount -= 1
+                    }else{
+                        errorCount += 1
+                    }
                 }
-                cell0.isError = isError1
+                manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
                 
             }else{
                 cell0.title = 0
-                cell0.titleLabel.text = String(format: "%d", cell0.title)
-                cell0.titleLabel.textColor = self.hexColor(hex: NORMAL_TEXT_COLOR)
                 manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
-                cell0.isError = false
+                if cell0.isTrue {
+                    errorCount += 1
+                }
+                cell0.isTrue = false
+                
             }
             
         }else{
             cell0.title = 0
-            cell0.titleLabel.text = "0"
-            cell0.titleLabel.textColor = self.hexColor(hex: NORMAL_TEXT_COLOR)
             manager.shuduArr[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
-            cell0.isError = false
+            if cell0.isTrue {
+                errorCount += 1
+            }
+            cell0.isTrue = false
+        }
+        self.change(cell: cell0, result: cell0.isTrue)
+
+        if operations.count > 0 {
+            operations.removeLast()
         }
         
-        cell0.titleLabel.isHidden = (cell0.title == 0)
-        operations.removeLast()
-        print("count:\(operations.count)")
-        amendedArray[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
-        
-        zeroCount -= ((cell0.title == 0) ? -1 : 1)
+        print("errorCount:\(errorCount)")
+//        amendedArray[self.line(forIndex: cell0.index)][self.column(forIndex: cell0.index)] = cell0.title
         
     }
     
@@ -560,21 +523,29 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
                 selectCell?.titleLabel.isHidden = true
                 let operation = ((selectCell?.index)!, 0, false)
                 operations.append(operation)
-                if (selectCell?.isError)! {
-                    errorCount -= 1
+                if (selectCell?.isTrue)! {
+                    errorCount += 1
                 }
-                selectCell?.isError = false
+                selectCell?.isTrue = false
                 
                 let row = self.line(forIndex: (selectCell?.index)!)
                 let col = self.column(forIndex: (selectCell?.index)!)
-                amendedArray[row][col] = 0
+//                amendedArray[row][col] = 0
                 manager.shuduArr[row][col] = 0
-                zeroCount += 1
             }
            
         }
         
     }
+    
+    func change(cell: EditCell!, result: Bool!) {
+        cell.titleLabel.text = String(format: "%d", cell.title)
+        cell.titleLabel.textColor = self.hexColor(hex: (result ? NORMAL_TEXT_COLOR : ERROR_TEXT_COLOR))
+        cell.titleLabel.isHidden = (cell.title == 0)
+        cell.isTrue = result
+    }
+    
+    
     
     //MARK: - Timer
     func startTimer() {
@@ -589,7 +560,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     @objc func handleTimer() {
         if timerCount == 0 {
             self.stopTimer()
-            if zeroCount != 0 {
+            if errorCount != 0 {
                 self.gameFail()
 
             }
@@ -600,7 +571,6 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     }
     
     func stopTimer() {
-
         if timer != nil {
             timer?.invalidate()
             timer = nil
@@ -629,8 +599,11 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         cell.editable = (cell.title == 0)
         if cell.title != 0 {
             cell.contentView.backgroundColor = self.hexColor(hex: 0xEEEEEE)
+            cell.isTrue = true
+        }else{
+            cell.isTrue = false
         }
-        cell.isError = false
+        
         
         if !allCells.contains(cell) {
             allCells.append(cell)
